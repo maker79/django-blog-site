@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from .forms import UserRegisterForm
-# this will care of check in so that logged-in user can access login page
+from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
+# this will take care of check in so that logged-in user can access login page
 # import log in required decorator
 from django.contrib.auth.decorators import login_required
 
@@ -22,4 +22,20 @@ def register(request):
 
 @login_required
 def profile(request):
-    return render(request, 'users/profile.html')
+    if request.method == 'POST':
+        # populate the fields of the form by passing an instance of an object that it expects
+        u_form = UserUpdateForm(request.POST, instance=request.user)
+        p_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            messages.success(request, f'Your account has been successfully updated!')
+            return redirect(to='profile')  # redirect will ensure that we don't get pop-up for resubmitting form
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = ProfileUpdateForm(instance=request.user.profile)
+    context = {
+        'u_form': u_form,
+        'p_form': p_form
+    }
+    return render(request, 'users/profile.html', context)
